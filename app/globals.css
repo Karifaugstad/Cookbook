@@ -1,26 +1,24 @@
+@import url('https://api.fontshare.com/v2/css?f[]=uncut-sans@1,700,400&display=swap');
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-background: #F5F0E8;
+  --color-foreground: #C0392B;
+  --color-primary: #C0392B;
+  --color-primary-dark: #96281B;
+  --color-muted: #d4614f;
+  --color-border: #DDD8CE;
+  --font-sans: "Uncut Sans", system-ui, sans-serif;
+  --font-serif: "Uncut Sans", system-ui, sans-serif;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: #F5F0E8;
+  color: #C0392B;
+  font-family: "Uncut Sans", system-ui, sans-serif;
+}
+
+h1, h2, h3, h4 {
+  font-family: "Uncut Sans", system-ui, sans-serif;
+  font-weight: 700;
 }
