@@ -1,5 +1,27 @@
 export type Category = "breakfast" | "lunch" | "dinner";
 
+export interface RecipeComment {
+  id: string;
+  recipe_id: string;
+  user_id: string;
+  body: string;
+  created_at: string;
+  profiles?: {
+    username: string;
+    display_name: string;
+    avatar_url: string | null;
+  };
+}
+
+export interface Profile {
+  id: string;
+  username: string;
+  display_name: string;
+  bio: string | null;
+  avatar_url: string | null;
+  created_at: string;
+}
+
 export interface RecipePhoto {
   id: string;
   recipe_id: string;
@@ -36,6 +58,21 @@ export interface Recipe {
   nutrition: Nutrition | null;
   created_at: string;
   updated_at: string;
+  user_id: string;
   recipe_photos?: RecipePhoto[];
   recipe_links?: RecipeLink[];
+  profiles?: {
+    username: string;
+    display_name: string;
+    avatar_url: string | null;
+  };
+}
+
+export interface Cookbook {
+  id: string;
+  user_id: string;
+  title: string;
+  description: string | null;
+  cover_storage_key?: string | null;
+  created_at: string;
 }

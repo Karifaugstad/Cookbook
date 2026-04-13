@@ -3,11 +3,18 @@ import Image from "next/image";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { getRecipeBySlug } from "@/lib/recipes";
+import { getCommentsForRecipe } from "@/lib/social";
+import { createClient } from "@/lib/supabase/server";
 import { getSupabaseImageUrl } from "@/lib/utils";
 import CopyIngredientsButton from "@/components/CopyIngredientsButton";
 import CopyCurrentUrlButton from "@/components/CopyCurrentUrlButton";
 import ServingsScaler from "@/components/ServingsScaler";
 import NutritionInfo from "@/components/NutritionInfo";
+import CommentItem from "@/components/recipes/CommentItem";
+import CommentForm from "@/components/recipes/CommentForm";
+import AppNav from "@/components/AppNav";
+import AddToCookbookButton from "@/components/cookbooks/AddToCookbookButton";
+import { getCookbookMembershipForRecipe, getCookbooksForUser } from "@/lib/cookbooks";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -25,8 +32,23 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function RecipePage({ params }: PageProps) {
   const { slug } = await params;
-  const recipe = await getRecipeBySlug(slug);
+  const [recipe, supabase] = await Promise.all([
+    getRecipeBySlug(slug),
+    createClient(),
+  ]);
   if (!recipe) notFound();
+
+  const [comments, { data: { user } }] = await Promise.all([
+    getCommentsForRecipe(recipe.id),
+    supabase.auth.getUser(),
+  ]);
+  const [cookbooks, cookbookMembership] =
+    user
+      ? await Promise.all([
+          getCookbooksForUser(user.id),
+          getCookbookMembershipForRecipe(user.id, recipe.id),
+        ])
+      : [[], []];
 
   const photos = (recipe.recipe_photos ?? []).sort(
     (a, b) => a.sort_order - b.sort_order
@@ -43,24 +65,35 @@ export default async function RecipePage({ params }: PageProps) {
 
   return (
     <main className="min-h-screen">
-      {/* Header */}
-      <header className="border-b border-border px-6 py-5 flex items-center justify-between">
-        <Link
-          href="/"
-          className="text-sm text-muted hover:text-primary transition-colors"
-        >
-          ← Alle oppskrifter
-        </Link>
-        <span className="text-xs text-primary uppercase tracking-widest font-medium">
-          {categoryLabel}
-        </span>
-      </header>
+      <AppNav />
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-4">
+        <div className="flex items-center justify-between mb-2">
+          <Link
+            href="/"
+            className="text-sm text-muted hover:text-primary transition-colors"
+          >
+            ← Feed
+          </Link>
+          <span className="text-xs text-primary uppercase tracking-widest font-medium">
+            {categoryLabel}
+          </span>
+        </div>
+      </div>
 
-      <article className="max-w-3xl mx-auto px-6 py-10">
-        {/* Title */}
-        <h1 className="text-5xl md:text-6xl font-bold leading-tight mb-3">
-          {recipe.title}
-        </h1>
+      <article className="max-w-3xl mx-auto px-4 sm:px-6 py-6">
+        {/* Title + actions */}
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-3">
+          <h1 className="text-5xl md:text-6xl font-bold leading-tight">{recipe.title}</h1>
+          <div className="flex items-center gap-2 shrink-0">
+            <CopyCurrentUrlButton compact iconOnly />
+            <AddToCookbookButton
+              recipeId={recipe.id}
+              currentUserId={user?.id ?? null}
+              cookbooks={cookbooks.map((book) => ({ id: book.id, title: book.title }))}
+              initialMembershipCookbookIds={cookbookMembership}
+            />
+          </div>
+        </div>
 
         {/* Tags */}
         {recipe.tags && recipe.tags.length > 0 && (
@@ -181,13 +214,34 @@ export default async function RecipePage({ params }: PageProps) {
           </section>
         )}
 
-        {/* Share */}
-        <div className="mt-12 pt-8 border-t border-border flex items-center gap-4">
-          <span className="text-xs text-muted uppercase tracking-widest">
-            Del oppskriften
-          </span>
-          <CopyCurrentUrlButton />
-        </div>
+        {/* Comments */}
+        <section className="mt-12 border-t border-border pt-8">
+          <h2 className="text-xl font-bold mb-6">
+            Kommentarer {comments.length > 0 && `(${comments.length})`}
+          </h2>
+          <div className="space-y-5">
+            {comments.length === 0 && (
+              <p className="text-sm text-muted">Ingen kommentarer ennå.</p>
+            )}
+            {comments.map((comment) => (
+              <CommentItem
+                key={comment.id}
+                comment={comment}
+                currentUserId={user?.id ?? null}
+              />
+            ))}
+          </div>
+          {user ? (
+            <CommentForm recipeId={recipe.id} currentUserId={user.id} />
+          ) : (
+            <p className="text-sm text-muted mt-4">
+              <Link href="/login" className="text-primary hover:underline">
+                Logg inn
+              </Link>{" "}
+              for å kommentere.
+            </p>
+          )}
+        </section>
       </article>
     </main>
   );

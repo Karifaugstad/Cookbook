@@ -134,6 +134,11 @@ export default function RecipeForm({ recipe }: RecipeFormProps) {
         await supabase.from("recipe_links").delete().eq("recipe_id", recipeId);
       } else {
         // Create recipe
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!user) throw new Error("Ikke innlogget");
+
         const { data, error } = await supabase
           .from("recipes")
           .insert({
@@ -146,6 +151,7 @@ export default function RecipeForm({ recipe }: RecipeFormProps) {
             servings,
             tags,
             published,
+            user_id: user.id,
           })
           .select("id")
           .single();

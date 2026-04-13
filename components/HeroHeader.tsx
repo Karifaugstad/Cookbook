@@ -1,4 +1,4 @@
-import Link from "next/link";
+import AuthNav from "@/components/AuthNav";
 
 export default function HeroHeader() {
   return (
@@ -11,16 +11,13 @@ export default function HeroHeader() {
 
       {/* Title */}
       <div className="relative z-10 text-center px-4">
-        <h1 className="text-4xl md:text-5xl font-bold tracking-tight">Mine oppskrifter</h1>
+        <h1 className="text-4xl md:text-5xl font-bold tracking-tight">Oppskrifter</h1>
       </div>
 
-      {/* Admin link */}
-      <Link
-        href="/admin"
-        className="absolute top-5 right-6 text-xs text-muted hover:text-primary transition-colors uppercase tracking-widest z-10"
-      >
-        Admin
-      </Link>
+      {/* Nav */}
+      <div className="absolute top-5 right-6">
+        <AuthNav />
+      </div>
     </header>
   );
 }

@@ -2,8 +2,26 @@ import Link from "next/link";
 import Image from "next/image";
 import type { Recipe } from "@/lib/types";
 import { getSupabaseImageUrl } from "@/lib/utils";
+import UserAvatar from "@/components/profile/UserAvatar";
 
-export default function RecipeCard({ recipe }: { recipe: Recipe }) {
+function timeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "akkurat nå";
+  if (mins < 60) return `${mins}m`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}t`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d`;
+  return `${Math.floor(days / 7)}u`;
+}
+
+interface RecipeCardProps {
+  recipe: Recipe;
+  showAuthor?: boolean;
+}
+
+export default function RecipeCard({ recipe, showAuthor = false }: RecipeCardProps) {
   const firstPhoto = recipe.recipe_photos
     ?.sort((a, b) => a.sort_order - b.sort_order)
     .at(0);
@@ -35,6 +53,7 @@ export default function RecipeCard({ recipe }: { recipe: Recipe }) {
           </div>
         )}
       </div>
+
       <div className="p-4">
         <p className="text-xs text-primary font-medium uppercase tracking-widest mb-1">
           {categoryLabel}
@@ -43,6 +62,18 @@ export default function RecipeCard({ recipe }: { recipe: Recipe }) {
           {recipe.title}
         </h2>
       </div>
+
+      {showAuthor && recipe.profiles && (
+        <div className="px-4 pb-3 pt-3 flex items-center gap-2 border-t border-border mt-1">
+          <UserAvatar profile={recipe.profiles} size={18} />
+          <span className="text-xs text-muted truncate">
+            {recipe.profiles.display_name}
+          </span>
+          <span className="text-xs text-muted ml-auto shrink-0">
+            {timeAgo(recipe.created_at)}
+          </span>
+        </div>
+      )}
     </Link>
   );
 }

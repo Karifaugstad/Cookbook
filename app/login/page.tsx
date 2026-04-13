@@ -24,7 +24,7 @@ export default function LoginPage() {
       setError("Feil e-post eller passord.");
       setLoading(false);
     } else {
-      router.push("/admin");
+      router.push("/profil");
       router.refresh();
     }
   }
@@ -79,6 +79,13 @@ export default function LoginPage() {
             {loading ? "Logger inn..." : "Logg inn"}
           </button>
         </form>
+
+        <p className="mt-6 text-center text-sm text-muted">
+          Ikke registrert?{" "}
+          <a href="/registrer" className="text-primary hover:underline">
+            Opprett konto
+          </a>
+        </p>
       </div>
     </main>
   );

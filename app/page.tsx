@@ -1,15 +1,14 @@
 import { Suspense } from "react";
-import { getRecipes, getAllTags } from "@/lib/recipes";
-import RecipeCard from "@/components/RecipeCard";
+import { createClient } from "@/lib/supabase/server";
+import { getFeedRecipes, getDiscoveryRecipes } from "@/lib/feed";
+import RecipeFeed from "@/components/RecipeFeed";
 import CategoryFilter from "@/components/CategoryFilter";
-import TagFilter from "@/components/TagFilter";
 import SearchBar from "@/components/SearchBar";
-import RandomRecipeButton from "@/components/RandomRecipeButton";
-import HeroHeader from "@/components/HeroHeader";
+import AppNav from "@/components/AppNav";
 import type { Category } from "@/lib/types";
 
 interface PageProps {
-  searchParams: Promise<{ category?: string; search?: string; tag?: string }>;
+  searchParams: Promise<{ category?: string; search?: string }>;
 }
 
 export default async function HomePage({ searchParams }: PageProps) {
@@ -20,59 +19,49 @@ export default async function HomePage({ searchParams }: PageProps) {
       ? (params.category as Category)
       : undefined;
 
-  const [recipes, allTags] = await Promise.all([
-    getRecipes({
-      category: activeCategory,
-      search: params.search,
-      tag: params.tag,
-    }),
-    getAllTags(),
-  ]);
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  // Innlogget: vis kun venners oppskrifter (med forfatter-info)
+  // Ikke innlogget: vis alle publiserte oppskrifter (discovery)
+  const allRecipes = user
+    ? await getFeedRecipes({ search: params.search })
+    : await getDiscoveryRecipes({ search: params.search });
+
+  const recipes = activeCategory
+    ? allRecipes.filter((r) => r.category === activeCategory)
+    : allRecipes;
+
+  const emptySubMessage = (() => {
+    if (params.search || activeCategory) return "Prøv et annet søk eller filter.";
+    if (user) return "Legg til venner for å se oppskrifter i feeden din!";
+    return undefined;
+  })();
 
   return (
     <main className="min-h-screen">
-      <HeroHeader />
+      <AppNav />
 
-      <div className="px-6 py-8 max-w-6xl mx-auto">
-        {/* Search */}
-        <div className="mb-5">
-          <Suspense>
-            <SearchBar />
-          </Suspense>
-        </div>
-
-        {/* Category + tag filters */}
-        <div className="flex flex-col gap-3 mb-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
+        {/* Søk + kategorifilter */}
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-8">
+          <div className="flex-1">
+            <Suspense>
+              <SearchBar />
+            </Suspense>
+          </div>
           <Suspense>
             <CategoryFilter active={activeCategory ?? "all"} />
           </Suspense>
-          <Suspense>
-            <TagFilter tags={allTags} active={params.tag ?? null} />
-          </Suspense>
         </div>
 
-        {/* Random recipe */}
-        <div className="mb-8">
-          <Suspense>
-            <RandomRecipeButton
-              recipes={recipes.map((r) => ({ title: r.title, slug: r.slug }))}
-            />
-          </Suspense>
-        </div>
-
-        {/* Grid */}
-        {recipes.length === 0 ? (
-          <div className="text-center py-24 text-muted">
-            <p className="text-2xl font-bold mb-2">Ingen oppskrifter funnet.</p>
-            <p className="text-sm">Prøv et annet søk eller filter.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {recipes.map((recipe) => (
-              <RecipeCard key={recipe.id} recipe={recipe} />
-            ))}
-          </div>
-        )}
+        <RecipeFeed
+          recipes={recipes}
+          showAuthor={!!user}
+          emptySubMessage={emptySubMessage}
+        />
       </div>
     </main>
   );

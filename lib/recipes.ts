@@ -82,6 +82,42 @@ export async function getRecipeBySlugAdmin(
   return data as Recipe;
 }
 
+export async function getMyRecipes(options?: {
+  search?: string;
+}): Promise<Recipe[]> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  let query = supabase
+    .from("recipes")
+    .select("*, recipe_photos(id, storage_key, sort_order)")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false });
+
+  if (options?.search) {
+    query = query.or(
+      `title.ilike.%${options.search}%,ingredients.ilike.%${options.search}%`
+    );
+  }
+
+  const { data } = await query;
+  return (data as Recipe[]) ?? [];
+}
+
+export async function getRecipesByUserId(userId: string): Promise<Recipe[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("recipes")
+    .select("*, recipe_photos(id, storage_key, sort_order)")
+    .eq("user_id", userId)
+    .eq("published", true)
+    .order("created_at", { ascending: false });
+  return (data as Recipe[]) ?? [];
+}
+
 export async function deleteRecipe(id: string): Promise<void> {
   const supabase = await createClient();
   const { error } = await supabase.from("recipes").delete().eq("id", id);
